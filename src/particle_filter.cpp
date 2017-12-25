@@ -8,13 +8,11 @@
 #include <random>
 #include <iostream>
 #include <sstream>
-#include <string>
-#include <iterator>
 #include "particle_filter.h"
 
 using namespace std;
 
-int indexOfSmallestElement(const vector<double> list) {
+int indexOfSmallestElement(const vector<double>& list) {
   int index = 0;
   for (int loop = 1; loop < list.size(); loop += 1) {
     if (list[loop] < list[index])
@@ -48,15 +46,14 @@ void ParticleFilter::init(const double x, const double y, const double theta, co
                                     dist_theta(theta, std[2]);
 
   // set each particle position and orientation
-  for (int loop = 0; loop < num_particles; loop += 1) {
-    particles[loop].id = loop;
-    particles[loop].x = dist_x(g);
-    particles[loop].y = dist_y(g);
-    particles[loop].theta = dist_theta(g);
-    particles[loop].weight = 1.0;
+  for (auto& particle: particles) {
+    particle.x = dist_x(g);
+    particle.y = dist_y(g);
+    particle.theta = dist_theta(g);
+    particle.weight = 1.0;
   }
 
-  // set initializatin flag
+  // set initialization flag
   is_initialized = true;
 }
 
@@ -75,13 +72,14 @@ void ParticleFilter::prediction(const double delta_t, const double std[], const 
   for (auto &particle: particles) {
 
     // update position for each particle
-    if (fabs(yaw_rate) != 0.0) {
-      particle.x     += (velocity / yaw_rate) * (+sin(particle.theta + (yaw_rate * delta_t)) - sin(particle.theta));
-      particle.y     += (velocity / yaw_rate) * (-cos(particle.theta + (yaw_rate * delta_t)) + cos(particle.theta));
+    if (abs(yaw_rate) != 0.0) {
+      const auto new_angle = particle.theta + (yaw_rate * delta_t);
+      particle.x     += (velocity / yaw_rate) * (+sin<double>(new_angle) - sin<double>(particle.theta));
+      particle.y     += (velocity / yaw_rate) * (-cos<double>(new_angle) + cos<double>(particle.theta));
       particle.theta += yaw_rate * delta_t;
     } else {
-      particle.x     += velocity * cos(particle.theta) * delta_t;
-      particle.y     += velocity * sin(particle.theta) * delta_t;
+      particle.x     += velocity * cos<double>(particle.theta) * delta_t;
+      particle.y     += velocity * sin<double>(particle.theta) * delta_t;
     }
 
     // add sensor noise to position for each particle
@@ -91,9 +89,9 @@ void ParticleFilter::prediction(const double delta_t, const double std[], const 
   }
 }
 
-void ParticleFilter::updateWeights(const double sensor_range, 
+void ParticleFilter::updateWeights(const double sensor_range,
                                    const double std_landmark[],
-                                   const std::vector<LandmarkObs> &observations, 
+                                   const std::vector<LandmarkObs> &observations,
                                    const Map &map_landmarks) {
   // Update the weights of each particle using a multi-variate Gaussian distribution. You can read
 
@@ -107,11 +105,11 @@ void ParticleFilter::updateWeights(const double sensor_range,
     double updated_weight = 1.0;
 
     // iterate observations for each particle
-    for (auto const &observation: observations) {
+    for (auto const &obs_vcs: observations) {
 
       // transform observation from vehicle coordinate system (VCS) to map coordinate system (MCS)
-      double observation_mcs_x = observation.x * cos(particle.theta) - observation.y * sin(particle.theta) + particle.x;
-      double observation_mcs_y = observation.x * sin(particle.theta) + observation.y * cos(particle.theta) + particle.y;
+      double obs_mcs_x = obs_vcs.x * cos<double>(particle.theta) - obs_vcs.y * sin<double>(particle.theta) + particle.x;
+      double obs_mcs_y = obs_vcs.x * sin<double>(particle.theta) + obs_vcs.y * cos<double>(particle.theta) + particle.y;
 
       // find distances of an MCS observation to all map landmarks
       vector<double> distances;
@@ -119,12 +117,12 @@ void ParticleFilter::updateWeights(const double sensor_range,
         const double distance_from_particle = pow(particle.x - l.x_f, 2) + pow(particle.y - l.y_f, 2);
         double distance = 0;
         // penalize observations which are out of sensor range
-        if (sqrt(distance_from_particle) <= sensor_range) {
-          distance = pow(observation_mcs_x - l.x_f, 2) + pow(observation_mcs_y - l.y_f, 2);
+        if (sqrt<double>(distance_from_particle) <= sensor_range) {
+          distance = pow(obs_mcs_x - l.x_f, 2) + pow(obs_mcs_y - l.y_f, 2);
         } else {
           distance = 9999999.999;
         }
-        distances.push_back(sqrt(distance));
+        distances.push_back(sqrt<double>(distance));
       }
 
       // distance and associated landmark for MCS observation with minimum distance
@@ -133,11 +131,11 @@ void ParticleFilter::updateWeights(const double sensor_range,
 
       // argument of exponential term
       double exp_arg = 0.0;
-      exp_arg += pow(observation_mcs_x - associated_landmark.x_f, 2) / gauss_x_den;
-      exp_arg += pow(observation_mcs_y - associated_landmark.y_f, 2) / gauss_y_den;
+      exp_arg += pow(obs_mcs_x - associated_landmark.x_f, 2) / gauss_x_den;
+      exp_arg += pow(obs_mcs_y - associated_landmark.y_f, 2) / gauss_y_den;
 
       // update weights with normzalization of all observations
-      updated_weight *= exp(-exp_arg) / gauss_den;
+      updated_weight *= exp<double>(-exp_arg) / gauss_den;
     }
 
     // combine weights of all observations for given particle
@@ -145,7 +143,7 @@ void ParticleFilter::updateWeights(const double sensor_range,
 
     // index of particle (range-based for)
     const auto index = &particle - &particles[0];
-    
+
     // update weight
     weights[index] = particle.weight;
   }
@@ -166,14 +164,16 @@ void ParticleFilter::resample() {
   particles = resampled_particles;
 }
 
-Particle ParticleFilter::SetAssociations(Particle particle, std::vector<int> associations, std::vector<double> sense_x,
-                                         std::vector<double> sense_y) {
+Particle ParticleFilter::SetAssociations(Particle particle,
+                                         const std::vector<int>& associations,
+                                         const std::vector<double>& sense_x,
+                                         const std::vector<double>& sense_y) {
   // particle: the particle to assign each listed association, and association's (x,y) world coordinates mapping to
   // associations: The landmark id that goes along with each listed association
   // sense_x: the associations x mapping already converted to world coordinates
   // sense_y: the associations y mapping already converted to world coordinates
 
-  //Clear the previous associations
+  // Clear the previous associations
   particle.associations.clear();
   particle.sense_x.clear();
   particle.sense_y.clear();
