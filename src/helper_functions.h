@@ -49,6 +49,33 @@ struct LandmarkObs {
 };
 
 /*
+ * Checks if the SocketIO event has JSON data.
+ * If there is data the JSON object in string format will be returned,
+ * else the empty string "" will be returned.
+ */
+inline std::string hasData(std::string s) {
+	auto found_null = s.find("null");
+	auto b1 = s.find_first_of("[");
+	auto b2 = s.find_first_of("]");
+	if (found_null != std::string::npos) {
+		return "";
+	}
+	else if (b1 != std::string::npos && b2 != std::string::npos) {
+		return s.substr(b1, b2 - b1 + 1);
+	}
+	return "";
+}
+
+inline const int indexOfSmallestElement(const std::vector<double>& list) {
+	int index = 0;
+	for (int loop = 1; loop < list.size(); loop += 1) {
+		if (list[loop] < list[index])
+			index = loop;
+	}
+	return index;
+}
+
+/*
  * Computes the Euclidean distance between two 2D points.
  * @param (x1,y1) x and y coordinates of first point
  * @param (x2,y2) x and y coordinates of second point

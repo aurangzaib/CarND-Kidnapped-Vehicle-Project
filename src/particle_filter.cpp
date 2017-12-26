@@ -12,15 +12,6 @@
 
 using namespace std;
 
-int indexOfSmallestElement(const vector<double>& list) {
-  int index = 0;
-  for (int loop = 1; loop < list.size(); loop += 1) {
-    if (list[loop] < list[index])
-      index = loop;
-  }
-  return index;
-}
-
 void ParticleFilter::init(const double x, const double y, const double theta, const double std[]) {
   // Set the number of particles. Initialize all 
   //  particles to first position (based on estimates of
@@ -57,7 +48,7 @@ void ParticleFilter::init(const double x, const double y, const double theta, co
   is_initialized = true;
 }
 
-void ParticleFilter::prediction(const double delta_t, const double std[], const double velocity, const double yaw_rate) {
+void ParticleFilter::prediction(const double dt, const double std[], const double velocity, const double yaw_rate) {
   // Add measurements to each particle
   // Add random Gaussian noise.
 
@@ -73,13 +64,13 @@ void ParticleFilter::prediction(const double delta_t, const double std[], const 
 
     // update position for each particle
     if (abs(yaw_rate) != 0.0) {
-      const auto new_angle = particle.theta + (yaw_rate * delta_t);
-      particle.x     += (velocity / yaw_rate) * (+sin<double>(new_angle) - sin<double>(particle.theta));
-      particle.y     += (velocity / yaw_rate) * (-cos<double>(new_angle) + cos<double>(particle.theta));
-      particle.theta += yaw_rate * delta_t;
+      const auto new_angle = particle.theta + (yaw_rate * dt);
+      particle.x     += (velocity / yaw_rate) * (+sin(new_angle) - sin(particle.theta));
+      particle.y     += (velocity / yaw_rate) * (-cos(new_angle) + cos(particle.theta));
+      particle.theta += yaw_rate * dt;
     } else {
-      particle.x     += velocity * cos<double>(particle.theta) * delta_t;
-      particle.y     += velocity * sin<double>(particle.theta) * delta_t;
+      particle.x     += velocity * cos(particle.theta) * dt;
+      particle.y     += velocity * sin(particle.theta) * dt;
     }
 
     // add sensor noise to position for each particle
@@ -108,8 +99,8 @@ void ParticleFilter::updateWeights(const double sensor_range,
     for (auto const &obs_vcs: observations) {
 
       // transform observation from vehicle coordinate system (VCS) to map coordinate system (MCS)
-      double obs_mcs_x = obs_vcs.x * cos<double>(particle.theta) - obs_vcs.y * sin<double>(particle.theta) + particle.x;
-      double obs_mcs_y = obs_vcs.x * sin<double>(particle.theta) + obs_vcs.y * cos<double>(particle.theta) + particle.y;
+      double obs_mcs_x = obs_vcs.x * cos(particle.theta) - obs_vcs.y * sin(particle.theta) + particle.x;
+      double obs_mcs_y = obs_vcs.x * sin(particle.theta) + obs_vcs.y * cos(particle.theta) + particle.y;
 
       // find distances of an MCS observation to all map landmarks
       vector<double> distances;
@@ -117,12 +108,12 @@ void ParticleFilter::updateWeights(const double sensor_range,
         const double distance_from_particle = pow(particle.x - l.x_f, 2) + pow(particle.y - l.y_f, 2);
         double distance = 0;
         // penalize observations which are out of sensor range
-        if (sqrt<double>(distance_from_particle) <= sensor_range) {
+        if (sqrt(distance_from_particle) <= sensor_range) {
           distance = pow(obs_mcs_x - l.x_f, 2) + pow(obs_mcs_y - l.y_f, 2);
         } else {
           distance = 9999999.999;
         }
-        distances.push_back(sqrt<double>(distance));
+        distances.push_back(sqrt(distance));
       }
 
       // distance and associated landmark for MCS observation with minimum distance
@@ -134,8 +125,8 @@ void ParticleFilter::updateWeights(const double sensor_range,
       exp_arg += pow(obs_mcs_x - associated_landmark.x_f, 2) / gauss_x_den;
       exp_arg += pow(obs_mcs_y - associated_landmark.y_f, 2) / gauss_y_den;
 
-      // update weights with normzalization of all observations
-      updated_weight *= exp<double>(-exp_arg) / gauss_den;
+      // update weights with normalization of all observations
+      updated_weight *= exp(-exp_arg) / gauss_den;
     }
 
     // combine weights of all observations for given particle

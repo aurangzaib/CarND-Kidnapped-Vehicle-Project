@@ -6,24 +6,7 @@ using namespace std;
 // for convenience
 using json = nlohmann::json;
 
-// Checks if the SocketIO event has JSON data.
-// If there is data the JSON object in string format will be returned,
-// else the empty string "" will be returned.
-std::string hasData(std::string s) {
-  auto found_null = s.find("null");
-  auto b1 = s.find_first_of("[");
-  auto b2 = s.find_first_of("]");
-  if (found_null != std::string::npos) {
-    return "";
-  }
-  else if (b1 != std::string::npos && b2 != std::string::npos) {
-    return s.substr(b1, b2 - b1 + 1);
-  }
-  return "";
-}
-
-int main()
-{
+int main() {
   uWS::Hub h;
 
   // Set up parameters here
@@ -63,11 +46,12 @@ int main()
 
           if (!pf.initialized()) {
 
-            // Sense noisy position data from the simulator. std::stod string to double
+            // Sense noisy GPS position data from the simulator. std::stod string to double
             double sense_x = std::stod(j[1]["sense_x"].get<std::string>());
             double sense_y = std::stod(j[1]["sense_y"].get<std::string>());
             double sense_theta = std::stod(j[1]["sense_theta"].get<std::string>());
 
+            // initialize Particle Filter
             pf.init(sense_x, sense_y, sense_theta, sigma_pos);
           } else {
             // Predict the vehicle's next state from previous (noiseless control) data.
