@@ -41,9 +41,9 @@ void ParticleFilter::init(const double x, const double y, const double theta, co
   // Define random generator with Gaussian distribution
   random_device rd;
   std::default_random_engine g(rd());
-  std::normal_distribution<double>  dist_x(x, std[0]),
-                                    dist_y(y, std[1]),
-                                    dist_theta(theta, std[2]);
+  std::normal_distribution<double> dist_x(x, std[0]),
+                                   dist_y(y, std[1]),
+                                   dist_theta(theta, std[2]);
 
   /**************************************************************
    * STEP - 3:
@@ -51,9 +51,9 @@ void ParticleFilter::init(const double x, const double y, const double theta, co
    **************************************************************/
 
   for (auto &particle: particles) {
-    particle.x = dist_x(g);
-    particle.y = dist_y(g);
-    particle.theta = dist_theta(g);
+    particle.x      = dist_x(g);
+    particle.y      = dist_y(g);
+    particle.theta  = dist_theta(g);
     particle.weight = 1.0;
   }
 
@@ -103,7 +103,7 @@ void ParticleFilter::prediction(const double dt, const double std[], const doubl
   }
 }
 
-void ParticleFilter::updateWeights(const double sensor_range,
+void ParticleFilter::update_weights(const double sensor_range,
                                    const double std_landmark[],
                                    const std::vector<LandmarkObs> &observations,
                                    const Map &map_landmarks) {
@@ -116,7 +116,9 @@ void ParticleFilter::updateWeights(const double sensor_range,
   // iterate particles
   for (auto &particle:particles) {
     double updated_weight = 1.0;
-
+    std::vector<int> associations;
+    std::vector<double> sense_x;
+    std::vector<double> sense_y;
     // iterate observations for each particle
     for (auto const &obs_vcs: observations) {
 
@@ -176,12 +178,19 @@ void ParticleFilter::updateWeights(const double sensor_range,
 
       // update weights with normalization of all observations
       updated_weight *= exp(-exp_arg) / gauss_den;
+
+      // append associated landmark
+      associations.push_back(associated_landmark.id_i);
+      sense_x.push_back(associated_landmark.x_f);
+      sense_y.push_back(associated_landmark.y_f);
     }
 
     /**************************************************************
      * STEP - 4:
      * Update Particle Weight
      **************************************************************/
+
+    set_associations(particle, associations, sense_x, sense_y);
 
     // update particle weight
     particle.weight = updated_weight;
@@ -214,14 +223,16 @@ void ParticleFilter::resample() {
   particles = resampled_particles;
 }
 
-Particle ParticleFilter::SetAssociations(Particle particle,
-                                         const std::vector<int>& associations,
-                                         const std::vector<double>& sense_x,
-                                         const std::vector<double>& sense_y) {
-  // particle: the particle to assign each listed association, and association's (x,y) world coordinates mapping to
-  // associations: The landmark id that goes along with each listed association
-  // sense_x: the associations x mapping already converted to world coordinates
-  // sense_y: the associations y mapping already converted to world coordinates
+void ParticleFilter::set_associations(Particle &particle,
+                                      const std::vector<int>& associations,
+                                      const std::vector<double>& sense_x,
+                                      const std::vector<double>& sense_y) {
+  /*
+   * particle: the particle for which landmarks are associated
+   * associations: The landmark id that goes along with each listed association.
+   * sense_x: the associations x mapping already converted to world coordinates.
+   * sense_y: the associations y mapping already converted to world coordinates.
+   */
 
   // Clear the previous associations
   particle.associations.clear();
@@ -231,11 +242,9 @@ Particle ParticleFilter::SetAssociations(Particle particle,
   particle.associations = associations;
   particle.sense_x = sense_x;
   particle.sense_y = sense_y;
-
-  return particle;
 }
 
-string ParticleFilter::getAssociations(Particle best) {
+string ParticleFilter::get_associations(Particle best){
   vector<int> v = best.associations;
   stringstream ss;
   copy(v.begin(), v.end(), ostream_iterator<int>(ss, " "));
@@ -244,7 +253,7 @@ string ParticleFilter::getAssociations(Particle best) {
   return s;
 }
 
-string ParticleFilter::getSenseX(Particle best) {
+string ParticleFilter::get_sense_x(Particle best){
   vector<double> v = best.sense_x;
   stringstream ss;
   copy(v.begin(), v.end(), ostream_iterator<float>(ss, " "));
@@ -253,7 +262,7 @@ string ParticleFilter::getSenseX(Particle best) {
   return s;
 }
 
-string ParticleFilter::getSenseY(Particle best) {
+string ParticleFilter::get_sense_y(Particle best){
   vector<double> v = best.sense_y;
   stringstream ss;
   copy(v.begin(), v.end(), ostream_iterator<float>(ss, " "));

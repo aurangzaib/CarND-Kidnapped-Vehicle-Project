@@ -1,4 +1,4 @@
-# Kidnapped Vehicle using Particle Filter (PF) Project
+# Kidnapped Vehicle Project using Particle Filter (PF)
 
 | **Source Code**  | [https://github.com/aurangzaib/CarND-Kidnapped-Vehicle-Project](https://github.com/aurangzaib/CarND-Kidnapped-Vehicle-Project)  |
 |:-----------|:-------------|
@@ -13,19 +13,19 @@
 
 A robot is transported to a new location where current location of the robot is unknown.
 
-A two dimensional Particle Filter is implemented to localize the robot by providing the best estimate of the current location (x, y) of the robot and association with map landmarks.
+A two dimensional Particle Filter is implemented to localize the robot by providing the best estimate of the current location of the robot.
 
 ##### Input to Particle Filter:
 
-- A map of it's location with landmarks
-- A noisy GPS estimate (x, y, heading) of its initial location
-- Noisy Laser sensor observations (x, y)
+- A map of robot's location with landmarks
+- A noisy GPS estimate (x, y, heading) of robot's initial location
+- Lidar sensor noisy observations (x, y)
 - Noiseless control data (velocity and turn rate)
 
 ##### Output of Particle Filter:
 
-- Best location estimate of robot
-- Association with map landmarks
+- Best estimate of robot's location (x, y, orientation)
+- Lidar sensor observations (x, y) which have best associations (nearest neighbours) with map landmarks
 
 ##### The steps of the project are as following:
 
@@ -33,13 +33,13 @@ A two dimensional Particle Filter is implemented to localize the robot by provid
 - Initialize Particle Filter.
 - Read previous velocity (v) and turn rate (yaw_rate)
 - Predict next state.
-- Read noisy Laser sensor observation data (x, y) and transform it from Vehicle Coordinate System (VCS) to Map Coordinate System (MCS)
-- Update each Particle's Importance Weights
-- Resample Particles with respect to their Importance Weights
+- Read Lidar sensor noisy observation (x, y) and transform it from Vehicle Coordinate System (VCS) to Map Coordinate System (MCS)
+- Update each particle's importance weights
+- Resample particles with respect to their importance weights
 
 ## Explanation of the code:
 
-The implementation of UKF is divided into 4 files:
+The implementation of the project is divided into 2 files:
 
 `main.cpp`
 

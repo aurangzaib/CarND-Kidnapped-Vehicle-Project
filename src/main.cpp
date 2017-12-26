@@ -89,7 +89,8 @@ int main() {
           }
 
           // Update the weights and resample
-          pf.updateWeights(sensor_range, sigma_landmark, noisy_observations, map);
+          pf.update_weights(sensor_range, sigma_landmark, noisy_observations, map);
+
           pf.resample();
 
           // Calculate and output the average weighted error of the particle filter over all time steps so far.
@@ -114,12 +115,11 @@ int main() {
           msgJson["best_particle_theta"] = best_particle.theta;
 
           //Optional message data used for debugging particle's sensing and associations
-          msgJson["best_particle_associations"] = pf.getAssociations(best_particle);
-          msgJson["best_particle_sense_x"] = pf.getSenseX(best_particle);
-          msgJson["best_particle_sense_y"] = pf.getSenseY(best_particle);
+          msgJson["best_particle_associations"] = pf.get_associations(best_particle);
+          msgJson["best_particle_sense_x"] = pf.get_sense_x(best_particle);
+          msgJson["best_particle_sense_y"] = pf.get_sense_y(best_particle);
 
           auto msg = "42[\"best_particle\"," + msgJson.dump() + "]";
-          // std::cout << msg << std::endl;
           ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
 
         }
@@ -135,12 +135,9 @@ int main() {
   // doesn't compile :-(
   h.onHttpRequest([](uWS::HttpResponse *res, uWS::HttpRequest req, char *data, size_t, size_t) {
     const std::string s = "<h1>Hello world!</h1>";
-    if (req.getUrl().valueLength == 1)
-    {
+    if (req.getUrl().valueLength == 1) {
       res->end(s.data(), s.length());
-    }
-    else
-    {
+    } else {
       // i guess this should be done more gracefully?
       res->end(nullptr, 0);
     }
@@ -156,12 +153,9 @@ int main() {
   });
 
   int port = 4567;
-  if (h.listen(port))
-  {
+  if (h.listen(port)) {
     std::cout << "Listening to port " << port << std::endl;
-  }
-  else
-  {
+  } else {
     std::cerr << "Failed to listen to port" << std::endl;
     return -1;
   }
