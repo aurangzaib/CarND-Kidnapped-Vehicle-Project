@@ -57,10 +57,10 @@ Following table summarizes the purpose of each file:
 |				| Read previous velocity (`v`) and turn rate (`yaw_rate`) |
 |				| Call `prediction` method of class `ParticleFilter` |
 |				| Read noisy Laser sensor observation data |
-|				| Call `updateWeights` method of class `ParticleFilter` |
+|				| Call `update_weights` method of class `ParticleFilter` |
 |				| Call `resample` method of class `ParticleFilter` |
-|				| Call `getSenseX` and `getSenseY` method of class `ParticleFilter` to get best location estimate of robot|
-|				| Call `getAssociations` method of class `ParticleFilter` to get associations with map landmarks|
+|				| Call `get_sense_x` and `get_sense_y` method of class `ParticleFilter` to get best location estimate of robot|
+|				| Call `get_associations` method of class `ParticleFilter` to get associations with map landmarks|
 |**particle_filter.cpp**| |
 |`init` | |
 | 				| Define `num_particles` |

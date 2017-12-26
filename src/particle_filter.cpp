@@ -113,17 +113,28 @@ void ParticleFilter::update_weights(const double sensor_range,
   const double gauss_y_den = 2 * pow(std_landmark[1], 2);
   const double gauss_den   = 2 * M_PI * std_landmark[0] * std_landmark[1];
 
+  // penalty when observation is out of range
+  const double OUT_OF_RANGE_PENALTY = 9999999.999;
+  
+  // define associated landmark parameters
+  std::vector<int> associations;
+  std::vector<double> sense_x;
+  std::vector<double> sense_y;
+
+  // updated weght for each particle
+  double updated_weight = 1.0;
+
   // iterate particles
   for (auto &particle:particles) {
-    double updated_weight = 1.0;
-    std::vector<int> associations;
-    std::vector<double> sense_x;
-    std::vector<double> sense_y;
+    
+    // reset values
+    updated_weight = 1.0;
+    associations = {};
+    sense_x = {};
+    sense_y = {};
+
     // iterate observations for each particle
     for (auto const &obs_vcs: observations) {
-
-      // penalty when observation is out of range
-      const double OUT_OF_RANGE_PENALTY = 9999999.999;
 
       /**************************************************************
        * STEP - 1:
@@ -158,6 +169,7 @@ void ParticleFilter::update_weights(const double sensor_range,
         else {
           distance = OUT_OF_RANGE_PENALTY;
         }
+        
         // append distance
         distances.push_back(distance);
       }
