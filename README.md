@@ -68,7 +68,7 @@ Following table summarizes the purpose of each file:
 | 				| Set each particle's weight to 1 |
 |`prediction` | |
 | 				| Update each particle's position (`x, y`) and orientation (`theta`) from given velocity and turn rate (`velocity, yaw_rate`) |
-|`updateWeights` | |
+|`update_weights` | |
 | 				| Transform Laser sensor observation from VCS to MCS | 
 | 				| Find nearest landmark to each observation using distance formula |
 |				| Calculate normalized probability for each observation using multi-variate Gaussian distribution |
@@ -83,6 +83,6 @@ The project is successfully passed:
 
 ![Results](result-pf.png)
 
-The video (GIF) below shows results of Object localization using Particle Filter:
+The video (GIF) below shows results of object localization using Particle Filter:
 
 ![Results](result-pf.gif)
