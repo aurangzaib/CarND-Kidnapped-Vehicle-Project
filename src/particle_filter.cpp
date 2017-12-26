@@ -13,21 +13,30 @@
 using namespace std;
 
 void ParticleFilter::init(const double x, const double y, const double theta, const double std[]) {
-  // Set the number of particles. Initialize all 
-  //  particles to first position (based on estimates of
-  //  x, y, theta and their uncertainties from GPS) and all weights to 1.
-  // Add random Gaussian noise to each particle.
-
   /*
    * x, y are GPS positions
    * theta is heading/orientation
    * std is uncertainties for x, y and theta
+   *
+   * Set the number of particles. Initialize all
+   * particles to first position (based on estimates of
+   * x, y, theta and their uncertainties from GPS) and all weights to 1.
+   * Add random Gaussian noise to each particle.
    */
 
-  // set number of particles. Resize particles and weights 
-  num_particles = 80;
+  /**************************************************************
+   * STEP - 1:
+   * Set number of particles. Resize particles and weights
+   **************************************************************/
+
+  num_particles = 60;
   weights.resize(num_particles);
   particles.resize(num_particles);
+
+  /**************************************************************
+   * STEP - 2:
+   * Generate random noise
+   **************************************************************/
 
   // Define random generator with Gaussian distribution
   random_device rd;
@@ -36,8 +45,12 @@ void ParticleFilter::init(const double x, const double y, const double theta, co
                                     dist_y(y, std[1]),
                                     dist_theta(theta, std[2]);
 
-  // set each particle position and orientation
-  for (auto& particle: particles) {
+  /**************************************************************
+   * STEP - 3:
+   * Set each particle position and orientation
+   **************************************************************/
+
+  for (auto &particle: particles) {
     particle.x = dist_x(g);
     particle.y = dist_y(g);
     particle.theta = dist_theta(g);
@@ -49,8 +62,11 @@ void ParticleFilter::init(const double x, const double y, const double theta, co
 }
 
 void ParticleFilter::prediction(const double dt, const double std[], const double velocity, const double yaw_rate) {
-  // Add measurements to each particle
-  // Add random Gaussian noise.
+
+  /**************************************************************
+   * STEP - 1:
+   * Generate adaptive white gaussian noise (AWGN)
+   **************************************************************/
 
   // Define random generator with Gaussian distribution
   std::default_random_engine g;
@@ -60,14 +76,21 @@ void ParticleFilter::prediction(const double dt, const double std[], const doubl
   std::normal_distribution<double> dist_y(0, std[1]);
   std::normal_distribution<double> dist_theta(0, std[2]);
 
-  for (auto &particle: particles) {
+  /**************************************************************
+   * STEP - 2:
+   * Update particle position and orientation
+   * Motion Model: Constant Turn Rate and Velocity (CTRV)
+   * Add noise
+   **************************************************************/
 
-    // update position for each particle
-    if (abs(yaw_rate) != 0.0) {
-      const auto new_angle = particle.theta + (yaw_rate * dt);
-      particle.x     += (velocity / yaw_rate) * (+sin(new_angle) - sin(particle.theta));
-      particle.y     += (velocity / yaw_rate) * (-cos(new_angle) + cos(particle.theta));
+  for (auto &particle: particles) {
+    // with turn
+    if (fabs(yaw_rate) > 0.00001) {
+      const auto theta_pred = particle.theta + (yaw_rate * dt);
+      particle.x     += (velocity / yaw_rate) * (+sin(theta_pred) - sin(particle.theta));
+      particle.y     += (velocity / yaw_rate) * (-cos(theta_pred) + cos(particle.theta));
       particle.theta += yaw_rate * dt;
+    // without turn
     } else {
       particle.x     += velocity * cos(particle.theta) * dt;
       particle.y     += velocity * sin(particle.theta) * dt;
@@ -84,7 +107,6 @@ void ParticleFilter::updateWeights(const double sensor_range,
                                    const double std_landmark[],
                                    const std::vector<LandmarkObs> &observations,
                                    const Map &map_landmarks) {
-  // Update the weights of each particle using a multi-variate Gaussian distribution. You can read
 
   // denominator term
   const double gauss_x_den = 2 * pow(std_landmark[0], 2);
@@ -98,27 +120,54 @@ void ParticleFilter::updateWeights(const double sensor_range,
     // iterate observations for each particle
     for (auto const &obs_vcs: observations) {
 
-      // transform observation from vehicle coordinate system (VCS) to map coordinate system (MCS)
+      // penalty when observation is out of range
+      const double OUT_OF_RANGE_PENALTY = 9999999.999;
+
+      /**************************************************************
+       * STEP - 1:
+       * Transformation observation
+       * From vehicle coordinate system (VCS) to map coordinate system (MCS)
+       **************************************************************/
+
       double obs_mcs_x = obs_vcs.x * cos(particle.theta) - obs_vcs.y * sin(particle.theta) + particle.x;
       double obs_mcs_y = obs_vcs.x * sin(particle.theta) + obs_vcs.y * cos(particle.theta) + particle.y;
+
+      /**************************************************************
+       * STEP - 2:
+       * Nearest Landmark from Observation
+       **************************************************************/
 
       // find distances of an MCS observation to all map landmarks
       vector<double> distances;
       for (auto const &l: map_landmarks.landmark_list) {
-        const double distance_from_particle = pow(particle.x - l.x_f, 2) + pow(particle.y - l.y_f, 2);
+        const double dx = pow(particle.x - l.x_f, 2);
+        const double dy = pow(particle.y - l.y_f, 2);
+        const double distance_from_particle = sqrt(dx + dy);
         double distance = 0;
-        // penalize observations which are out of sensor range
-        if (sqrt(distance_from_particle) <= sensor_range) {
-          distance = pow(obs_mcs_x - l.x_f, 2) + pow(obs_mcs_y - l.y_f, 2);
-        } else {
-          distance = 9999999.999;
+
+        // distance between lidar and landmark
+        if (distance_from_particle <= sensor_range) {
+          const double obs_dx = pow(obs_mcs_x - l.x_f, 2);
+          const double obs_dy = pow(obs_mcs_y - l.y_f, 2);
+          distance = sqrt(obs_dx + obs_dy);
         }
-        distances.push_back(sqrt(distance));
+
+        // penalize observations which are out of sensor range
+        else {
+          distance = OUT_OF_RANGE_PENALTY;
+        }
+        // append distance
+        distances.push_back(distance);
       }
 
-      // distance and associated landmark for MCS observation with minimum distance
+      // associated landmark for MCS observation with minimum distance
       const auto index = indexOfSmallestElement(distances);
       const auto associated_landmark = map_landmarks.landmark_list[index];
+
+      /**************************************************************
+       * STEP - 3:
+       * Find normalized probability using multi-variate Gaussian distribution
+       **************************************************************/
 
       // argument of exponential term
       double exp_arg = 0.0;
@@ -129,19 +178,29 @@ void ParticleFilter::updateWeights(const double sensor_range,
       updated_weight *= exp(-exp_arg) / gauss_den;
     }
 
-    // combine weights of all observations for given particle
+    /**************************************************************
+     * STEP - 4:
+     * Update Particle Weight
+     **************************************************************/
+
+    // update particle weight
     particle.weight = updated_weight;
 
     // index of particle (range-based for)
     const auto index = &particle - &particles[0];
 
     // update weight
-    weights[index] = particle.weight;
+    weights[index] = updated_weight;
   }
 }
 
 void ParticleFilter::resample() {
-  // Resample particles with replacement with probability proportional to their weight.
+
+  /**************************************************************
+   * STEP - 1:
+   * Resample particles with replacement
+   * Probability are proportional to their weight.
+   **************************************************************/
 
   // initialise engine
   std::random_device rd;

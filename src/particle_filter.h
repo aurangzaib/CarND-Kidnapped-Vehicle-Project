@@ -12,7 +12,6 @@
 #include "helper_functions.h"
 
 struct Particle {
-
   double x;
   double y;
   double theta;
